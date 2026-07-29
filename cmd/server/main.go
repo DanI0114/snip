@@ -105,7 +105,7 @@ func main() {
 	mux.HandleFunc("GET /{code}", app.redirect)
 
 	server := &http.Server{
-		Addr:              envOrDefault("HTTP_ADDRESS", defaultAddress),
+		Addr:              serverAddress(),
 		Handler:           loggingMiddleware(mux),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
@@ -331,4 +331,13 @@ func envOrDefault(name, fallback string) string {
 	}
 
 	return value
+}
+
+func serverAddress() string {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	return "0.0.0.0:" + port
 }
