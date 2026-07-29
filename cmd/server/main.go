@@ -45,9 +45,8 @@ type errorResponse struct {
 }
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found; using system environment variables")
 	}
 
 	databaseURL := os.Getenv("DATABASE_URL")
