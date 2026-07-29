@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>snip - long links, short leash</title>
+<link rel="stylesheet" href="./static/style.css">
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <div class="logo"><span class="dot"></span>snip</div>
+      <nav>
+        <a href="#demo">Shorten</a>
+        <a href="#features">Why snip</a>
+      </nav>
+      <button class="btn btn-ghost">Sign in</button>
+    </div>
+  </header>
+
+  <section class="hero" id="demo">
+    <div class="wrap">
+      <div class="eyebrow">// url shortener</div>
+      <h1>Long links,<br><em>short leash.</em></h1>
+      <p class="lede">
+        Paste the unwieldy URL. Get back something you can actually say out loud,
+        text a friend, or print on a business card.
+      </p>
+
+      <div class="shrink-demo">
+        <form class="shrink-row" id="shorten-form">
+          <input class="shrink-input mono" type="url" id="url"
+            placeholder="https://www.example.com/products/category/item?ref=email-campaign&utm_source=newsletter"
+            required>
+          <button class="btn btn-primary" type="submit">Shrink it</button>
+        </form>
+
+        <p class="form-error" id="error"></p>
+
+        <svg class="coil" viewBox="0 0 600 46" preserveAspectRatio="none">
+          <path d="M0,23 C40,4 80,42 120,23 C160,4 200,42 240,23 C270,10 290,36 310,23" />
+          <path class="tight" d="M330,23 C340,15 350,31 360,23 C370,15 380,31 390,23 C400,15 410,31 420,23 C430,17 436,29 442,23" />
+        </svg>
+
+        <div class="result-row" id="result" hidden>
+          <a class="result-link mono" id="short-url" href="#" target="_blank" rel="noopener"></a>
+          <button class="btn btn-ghost" id="copy-button" type="button">Copy</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="stats">
+    <div class="wrap">
+      <div>
+        <div class="stat-num">2.4M+</div>
+        <div class="stat-label">links shortened</div>
+      </div>
+      <div>
+        <div class="stat-num">99.98%</div>
+        <div class="stat-label">uptime, last 12 months</div>
+      </div>
+      <div>
+        <div class="stat-num">&lt;80ms</div>
+        <div class="stat-label">average redirect time</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="features" id="features">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="section-eyebrow">// under the hood</div>
+        <h2>Built for links that need to work, not just look nice.</h2>
+      </div>
+
+      <div class="feature-grid">
+        <div class="feature">
+          <div class="feature-icon">
+            <svg viewBox="0 0 34 34"><path d="M6 17a11 11 0 1 1 22 0 11 11 0 0 1-22 0Z"/><path d="M6 17h22M17 6a16 16 0 0 1 0 22M17 6a16 16 0 0 0 0 22"/></svg>
+          </div>
+          <h3>Custom domains</h3>
+          <p>Point your own domain at snip so every link reads like it belongs to you, not us.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg viewBox="0 0 34 34"><path d="M4 27 13 12l6 8 5-7 6 14"/><circle cx="13" cy="12" r="2"/><circle cx="19" cy="20" r="2"/></svg>
+          </div>
+          <h3>Click analytics</h3>
+          <p>See where every click came from — device, location, referrer — without digging through spreadsheets.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg viewBox="0 0 34 34"><path d="M17 4v10l7 4"/><circle cx="17" cy="17" r="13"/></svg>
+          </div>
+          <h3>Links that expire</h3>
+          <p>Set a shelf life on any link. Great for one-off campaigns you don't want lingering forever.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta">
+    <div class="wrap">
+      <h2>Your next link could be five characters long.</h2>
+      <p>No credit card. No approval queue. Just a shorter link in about a second.</p>
+      <button class="btn btn-primary" onclick="document.getElementById('demo').scrollIntoView()">Start shortening — it's free</button>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      <span class="mono">© 2026 snip</span>
+      <nav>
+        <a href="#">Terms</a>
+        <a href="#">Privacy</a>
+        <a href="#">Status</a>
+      </nav>
+    </div>
+  </footer>
+
+<script src="./static/app.js"></script>
+</body>
+</html>
