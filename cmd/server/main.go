@@ -65,8 +65,7 @@ func main() {
 	}
 	defer db.Close()
 
-	// sql.Open does not necessarily establish a connection immediately,
-	// so explicitly verify the database at startup.
+	// explicitly verify the database at startup.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -74,7 +73,7 @@ func main() {
 		log.Fatalf("connect to database: %v", err)
 	}
 
-	// Keep the pool small for the MVP.
+	// Keeping the pool small for the MVP.
 	db.SetMaxOpenConns(10)
 	db.SetMaxIdleConns(5)
 	db.SetConnMaxIdleTime(5 * time.Minute)
