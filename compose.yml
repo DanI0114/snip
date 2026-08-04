@@ -24,5 +24,11 @@ services:
     depends_on:
       - database
 
+  redis:
+    image: valkey/valkey:8-alpine
+    restart: unless-stopped
+    ports:
+    - "6379:6379"
+
 volumes:
   postgres_data:

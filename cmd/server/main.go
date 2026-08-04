@@ -17,6 +17,7 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/joho/godotenv"
+	"github.com/redis/go-redis/v9"
 )
 
 const (
@@ -26,8 +27,9 @@ const (
 )
 
 type application struct {
-	db      *sql.DB
-	baseURL string
+	db          *sql.DB
+	redisClient *redis.Client
+	baseURL     string
 }
 
 type createLinkRequest struct {
@@ -59,11 +61,24 @@ func main() {
 		baseURL = "http://localhost:8080"
 	}
 
+	redisURL := os.Getenv("REDIS_URL")
+	if redisURL == "" {
+		log.Fatal("REDIS_URL variable is required")
+	}
+
 	db, err := sql.Open("pgx", databaseURL)
 	if err != nil {
 		log.Fatalf("open database: %v", err)
 	}
 	defer db.Close()
+
+	redisOptions, err := redis.ParseURL(redisURL)
+	if err != nil {
+		log.Fatalf("parse Redis URL: %v", err)
+	}
+
+	redisClient := redis.NewClient(redisOptions)
+	defer redisClient.Close()
 
 	// explicitly verify the database at startup.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -73,17 +88,22 @@ func main() {
 		log.Fatalf("connect to database: %v", err)
 	}
 
+	if err := redisClient.Ping(ctx).Err(); err != nil {
+		log.Fatalf("connect to redis: %v", err)
+	}
+
 	// Keeping the pool small for the MVP.
 	db.SetMaxOpenConns(10)
 	db.SetMaxIdleConns(5)
 	db.SetConnMaxIdleTime(5 * time.Minute)
 
 	app := &application{
-		db:      db,
-		baseURL: baseURL,
+		db:          db,
+		redisClient: redisClient,
+		baseURL:     baseURL,
 	}
 
-	// Creating a router
+	// Creating a router.
 	mux := http.NewServeMux()
 
 	// API.
@@ -99,7 +119,6 @@ func main() {
 		),
 	)
 
-	// Short links, for example: https://example.com/aB92xQz
 	mux.HandleFunc("GET /{code}", app.redirect)
 
 	server := &http.Server{
@@ -231,8 +250,7 @@ func (app *application) redirect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 302 allows you to change the target later without browsers treating the
-	// redirect as permanently cached.
+	// 302 allows to change the target later without browsers treating the redirect as permanently cached.
 	http.Redirect(w, r, targetURL, http.StatusFound)
 }
 

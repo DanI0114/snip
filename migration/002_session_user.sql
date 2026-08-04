@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS users (
     user_id     BIGSERIAL PRIMARY KEY,
-    user_name   VARCHAR(32) NOT NULL,
+    user_name   VARCHAR(...) NOT NULL,
     email       TEXT NOT NULL,
     password_hash   TEXT NOT NULL,
     user_status      VARCHAR(...) NOT NULL CHECK (status IN ('pending', 'active', 'disabled')) DEFAULT 'pending',
@@ -13,14 +13,3 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE UNIQUE INDEX IF NOT EXISTS users_email_lower_idx
 ON users (LOWER(email));
-
-INSERT INTO users (
-    name,
-    email,
-    password_hash
-)
-VALUES (
-    'Dem',
-    'dem@example.com',
-    'some-hash'
-);
