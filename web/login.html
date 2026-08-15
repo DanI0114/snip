@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Snip</title>
+<link rel="stylesheet" href="./static/styles.css">
+</head>
+<body>
+
+  <header>
+    <div class="wrap">
+      <a class="logo" href="index.html"><span class="dot"></span>snip</a>
+      <nav>
+        <a href="index.html#demo">Shorten</a>
+        <a href="index.html#features">Why snip</a>
+      </nav>
+      <div class="header-actions">
+        <a class="btn btn-primary" href="register.html">Sign up</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="auth-main">
+    <div class="auth-card">
+      <div class="eyebrow">// welcome back</div>
+      <h1>Sign in</h1>
+      <p class="auth-sub">Pick up where you left off with your shortened links.</p>
+
+      <form id="login-form">
+        <div class="field">
+          <label for="email">Email</label>
+          <input class="shrink-input mono" type="email" id="email" name="email" placeholder="you@example.com" required autocomplete="email">
+        </div>
+
+        <div class="field">
+          <div class="field-row">
+            <label for="password">Password</label>
+            <a class="link-small mono" href="#">Forgot?</a>
+          </div>
+          <input class="shrink-input mono" type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+        </div>
+
+        <button class="btn btn-primary" type="submit">Sign in</button>
+        <p class="form-error" id="error"></p>
+      </form>
+
+      <p class="auth-switch">Don't have an account? <a href="register.html">Create one</a></p>
+    </div>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span class="mono">© 2026 snip</span>
+      <nav>
+        <a href="#">Terms</a>
+        <a href="#">Privacy</a>
+        <a href="#">Status</a>
+      </nav>
+    </div>
+  </footer>
+
+<script>
+  const form = document.querySelector("#login-form");
+  const errorElement = document.querySelector("#error");
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    errorElement.textContent = "";
+
+    const email = document.querySelector("#email").value;
+    const password = document.querySelector("#password").value;
+
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Could not sign in");
+      }
+
+      window.location.href = "index.html";
+    } catch (error) {
+      errorElement.textContent = error.message;
+    }
+  });
+</script>
+
+</body>
+</html>

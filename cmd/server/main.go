@@ -46,6 +46,13 @@ type errorResponse struct {
 	Error string `json:"error"`
 }
 
+type registerRequest struct {
+	Name                 string `json:"name"`
+	Email                string `json:"email"`
+	Password             string `json:"password"`
+	PasswordConfirmation string `json:"password_confirmation"`
+}
+
 func main() {
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found; using system environment variables")
@@ -80,7 +87,7 @@ func main() {
 	redisClient := redis.NewClient(redisOptions)
 	defer redisClient.Close()
 
-	// explicitly verify the database at startup.
+	// explicitly verify the database at startup
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -92,7 +99,7 @@ func main() {
 		log.Fatalf("connect to redis: %v", err)
 	}
 
-	// Keeping the pool small for the MVP.
+	// Keeping the pool small for the MVP
 	db.SetMaxOpenConns(10)
 	db.SetMaxIdleConns(5)
 	db.SetConnMaxIdleTime(5 * time.Minute)
@@ -103,13 +110,13 @@ func main() {
 		baseURL:     baseURL,
 	}
 
-	// Creating a router.
+	// router
 	mux := http.NewServeMux()
 
-	// API.
+	// API
 	mux.HandleFunc("POST /api/links", app.createLink)
 
-	// Frontend.
+	// frontend
 	mux.HandleFunc("GET /{$}", app.home)
 	mux.Handle(
 		"GET /static/",
@@ -135,6 +142,7 @@ func main() {
 	if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 		log.Fatal(err)
 	}
+
 }
 
 func (app *application) home(w http.ResponseWriter, r *http.Request) {

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create account — snip</title>
+<link rel="stylesheet" href="./static/style.css">
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <a class="logo" href="index.html"><span class="dot"></span>snip</a>
+      <nav>
+        <a href="index.html#demo">Shorten</a>
+        <a href="index.html#features">Why snip</a>
+      </nav>
+      <div class="header-actions">
+        <a class="btn btn-ghost" href="login.html">Sign in</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="auth-main">
+    <div class="auth-card">
+      <div class="eyebrow">// get started</div>
+      <h1>Create your account</h1>
+      <p class="auth-sub">Free to start. No credit card required.</p>
+
+      <form id="register-form">
+        <div class="field">
+          <label for="name">Name</label>
+          <input class="shrink-input mono" type="text" id="name" name="name" placeholder="Ada Lovelace" required autocomplete="name">
+        </div>
+
+        <div class="field">
+          <label for="email">Email</label>
+          <input class="shrink-input mono" type="email" id="email" name="email" placeholder="you@example.com" required autocomplete="email">
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <input class="shrink-input mono" type="password" id="password" name="password" placeholder="At least 8 characters" required minlength="8" autocomplete="new-password">
+        </div>
+
+        <div class="field">
+          <label for="confirm-password">Confirm password</label>
+          <input class="shrink-input mono" type="password" id="confirm-password" name="confirm-password" placeholder="••••••••" required minlength="8" autocomplete="new-password">
+        </div>
+
+        <button class="btn btn-primary" type="submit">Create account</button>
+        <p class="form-error" id="error"></p>
+      </form>
+
+      <p class="auth-switch">Already have an account? <a href="login.html">Sign in</a></p>
+    </div>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span class="mono">© 2026 snip</span>
+      <nav>
+        <a href="#">Terms</a>
+        <a href="#">Privacy</a>
+        <a href="#">Status</a>
+      </nav>
+    </div>
+  </footer>
+
+<script>
+  const form = document.querySelector("#register-form");
+  const errorElement = document.querySelector("#error");
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    errorElement.textContent = "";
+
+    const name = document.querySelector("#name").value;
+    const email = document.querySelector("#email").value;
+    const password = document.querySelector("#password").value;
+    const confirmPassword = document.querySelector("#confirm-password").value;
+
+    if (password !== confirmPassword) {
+      errorElement.textContent = "Passwords don't match";
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Could not create account");
+      }
+
+      window.location.href = "index.html";
+    } catch (error) {
+      errorElement.textContent = error.message;
+    }
+  });
+</script>
+
+</body>
+</html>
