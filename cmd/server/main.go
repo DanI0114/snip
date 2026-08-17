@@ -10,11 +10,13 @@ import (
 	"log"
 	"math/big"
 	"net/http"
+	"net/mail"
 	"net/url"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
@@ -27,9 +29,10 @@ const (
 )
 
 type application struct {
-	db          *sql.DB
-	redisClient *redis.Client
-	baseURL     string
+	db                *sql.DB
+	redisClient       *redis.Client
+	baseURL           string
+	dummyPasswordHash string
 }
 
 type createLinkRequest struct {
@@ -104,10 +107,15 @@ func main() {
 	db.SetMaxIdleConns(5)
 	db.SetConnMaxIdleTime(5 * time.Minute)
 
+	dummyPasswordHash, err := hashPassword(
+		"this-password-does-not-belong-to-any-user",
+	)
+
 	app := &application{
-		db:          db,
-		redisClient: redisClient,
-		baseURL:     baseURL,
+		db:                db,
+		redisClient:       redisClient,
+		baseURL:           baseURL,
+		dummyPasswordHash: dummyPasswordHash,
 	}
 
 	// router
@@ -115,6 +123,8 @@ func main() {
 
 	// API
 	mux.HandleFunc("POST /api/links", app.createLink)
+	mux.HandleFunc("POST /api/auth/register", app.register)
+	mux.HandleFunc("POST /api/auth/login", app.login)
 
 	// frontend
 	mux.HandleFunc("GET /{$}", app.home)
@@ -127,6 +137,8 @@ func main() {
 	)
 
 	mux.HandleFunc("GET /{code}", app.redirect)
+	mux.HandleFunc("GET /register", app.registerPage)
+	mux.HandleFunc("GET /login", app.loginPage)
 
 	server := &http.Server{
 		Addr:              serverAddress(),
@@ -142,7 +154,143 @@ func main() {
 	if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 		log.Fatal(err)
 	}
+}
 
+func (app *application) registerPage(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./web/register.html")
+}
+
+func (app *application) loginPage(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./web/login.html")
+}
+
+func validateEmail(email string) error {
+	if email == "" {
+		return errors.New("email is required")
+	}
+
+	if len(email) > 254 {
+		return errors.New("email is too long")
+	}
+
+	address, err := mail.ParseAddress(email)
+	if err != nil {
+		return errors.New("invalid email")
+	}
+
+	if address.Address != email {
+		return errors.New("invalid email")
+	}
+
+	return nil
+}
+
+func (app *application) register(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+
+	var input registerRequest
+
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+
+	if err := decoder.Decode(&input); err != nil {
+		writeJSON(w, http.StatusBadRequest, errorResponse{
+			Error: "invalid request body",
+		})
+		return
+	}
+
+	input.Name = strings.TrimSpace(input.Name)
+	input.Email = strings.ToLower(strings.TrimSpace(input.Email))
+
+	// name validation
+	if input.Name == "" {
+		writeJSON(w, http.StatusUnprocessableEntity, errorResponse{
+			Error: "name is required",
+		})
+		return
+	}
+
+	if len(input.Name) > 64 {
+		writeJSON(w, http.StatusUnprocessableEntity, errorResponse{
+			Error: "name is too long",
+		})
+		return
+	}
+
+	// email validation
+	if err := validateEmail(input.Email); err != nil {
+		writeJSON(w, http.StatusUnprocessableEntity, errorResponse{
+			Error: "invalid email address",
+		})
+		return
+	}
+
+	// password validation
+	if len(input.Password) < 15 {
+		writeJSON(w, http.StatusUnprocessableEntity, errorResponse{
+			Error: "password must be at least 15 characters",
+		})
+		return
+	}
+
+	if len(input.Password) > 128 {
+		writeJSON(w, http.StatusUnprocessableEntity, errorResponse{
+			Error: "password is too long",
+		})
+		return
+	}
+
+	if input.Password != input.PasswordConfirmation {
+		writeJSON(w, http.StatusUnprocessableEntity, errorResponse{
+			Error: "passwords do not match",
+		})
+		return
+	}
+
+	passwordHash, err := hashPassword(input.Password)
+	if err != nil {
+		log.Printf("hash password: %v", err)
+
+		writeJSON(w, http.StatusInternalServerError, errorResponse{
+			Error: "internal server error",
+		})
+		return
+	}
+
+	var userID int64
+
+	err = app.db.QueryRowContext(
+		r.Context(),
+		`
+			INSERT INTO users (
+				name,
+				email,
+				password_hash
+			)
+			VALUES ($1, $2, $3)
+			RETURNING user_id
+		`,
+		input.Name,
+		input.Email,
+		passwordHash,
+	).Scan(&userID)
+
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			writeJSON(w, http.StatusAccepted, map[string]any{
+				"message": "if this email can be registered, check your inbox for the next step",
+			})
+			return
+		}
+		log.Printf("insert user: %v", err)
+
+		writeJSON(w, http.StatusInternalServerError, errorResponse{
+			Error: "could not create account",
+		})
+		return
+	}
 }
 
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
