@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Snip - Long Links, Short Leash</title>
+<title>Snip</title>
 <link rel="stylesheet" href="./static/style.css">
 </head>
 <body>
@@ -11,13 +11,16 @@
     <div class="wrap">
       <div class="logo"><span class="dot"></span>snip</div>
       <nav>
-        <a href="#home">Shorten</a>
+        <a href="#demo">Shorten</a>
         <a href="#features">Why snip</a>
       </nav>
-      <button class="btn btn-ghost" href="register.html">Sign in</button>
+      <div class="header-actions">
+        <a class="btn btn-ghost" href="login">Sign in</a>
+        <a class="btn btn-primary" href="register">Sign up</a>
+      </div>
     </div>
   </header>
-
+ 
   <section class="hero" id="demo">
     <div class="wrap">
       <div class="eyebrow">// url shortener</div>
@@ -26,7 +29,7 @@
         Paste the unwieldy URL. Get back something you can actually say out loud,
         text a friend, or print on a business card.
       </p>
-
+ 
       <div class="shrink-demo">
         <form class="shrink-row" id="shorten-form">
           <input class="shrink-input mono" type="url" id="url"
@@ -34,9 +37,9 @@
             required>
           <button class="btn btn-primary" type="submit">Shrink it</button>
         </form>
-
+ 
         <p class="form-error" id="error"></p>
-
+ 
         <div class="result-row" id="result" hidden>
           <a class="result-link mono" id="short-url" href="#" target="_blank" rel="noopener"></a>
           <button class="btn btn-ghost" id="copy-button" type="button">Copy</button>
@@ -44,7 +47,7 @@
       </div>
     </div>
   </section>
-
+ 
   <section class="stats">
     <div class="wrap">
       <div>
@@ -61,14 +64,14 @@
       </div>
     </div>
   </section>
-
+ 
   <section class="features" id="features">
     <div class="wrap">
       <div class="section-head">
         <div class="section-eyebrow">// under the hood</div>
         <h2>Built for links that need to work, not just look nice.</h2>
       </div>
-
+ 
       <div class="feature-grid">
         <div class="feature">
           <div class="feature-icon">
@@ -94,7 +97,7 @@
       </div>
     </div>
   </section>
-
+ 
   <section class="cta">
     <div class="wrap">
       <h2>Your next link could be five characters long.</h2>
@@ -102,7 +105,7 @@
       <button class="btn btn-primary" onclick="document.getElementById('demo').scrollIntoView()">Start shortening — it's free</button>
     </div>
   </section>
-
+ 
   <footer>
     <div class="wrap">
       <span class="mono">© 2026 snip</span>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Snip</title>
+  <link rel="stylesheet" href="./static/style.css">
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <a class="logo" href="/">
+        <span class="dot"></span>
+        snip
+      </a>
+      <nav>
+        <a href="/#demo">Shorten</a>
+        <a href="/#features">Why snip</a>
+      </nav>
+      <div class="header-actions" id="auth-actions"></div>
+    </div>
+  </header>
+
+
+  <main class="dashboard-main">
+    <div class="wrap">
+      <div class="dashboard-heading">
+        <div>
+          <div class="eyebrow">
+            // dashboard
+          </div>
+          <h1>My links</h1>
+          <p class="dashboard-subtitle">
+            Everything you've shortened, all in one place.
+          </p>
+        </div>
+
+        <a
+          class="btn btn-primary"
+          href="/#demo"
+        >
+          + New link
+        </a>
+      </div>
+
+
+      <div class="dashboard-summary" id="links-summary" hidden>
+        <div class="dashboard-stat">
+          <span class="dashboard-stat-value" id="total-links">0</span>
+          <span class="dashboard-stat-label">links</span>
+        </div>
+        <div class="dashboard-stat">
+          <span class="dashboard-stat-value" id="total-clicks">0</span>
+          <span class="dashboard-stat-label">total clicks</span>
+        </div>
+      </div>
+      <p class="form-error" id="links-error"></p>
+      <div class="links-loading" id="links-loading">Loading your links...</div>
+
+      <div class="links-empty" id="links-empty" hidden>
+        <div class="empty-icon">↗</div>
+        <h2>No links yet.</h2>
+        <p>Shorten your first URL and it'll appear here.</p>
+        <a class="btn btn-primary" href="/#demo">Shorten a link</a>
+      </div>
+
+      <div class="links-list" id="links-list" hidden></div>
+    </div>
+  </main>
+
+
+  <footer>
+    <div class="wrap">
+      <span class="mono">© 2026 snip</span>
+      <nav>
+        <a href="#">Terms</a>
+        <a href="#">Privacy</a>
+        <a href="#">Status</a>
+      </nav>
+    </div>
+  </footer>
+
+
+  <script src="./static/app.js"></script>
+
+</body>
+</html>

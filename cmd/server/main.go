@@ -16,10 +16,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
+	"github.com/resend/resend-go/v3"
 )
 
 const (
@@ -33,6 +33,10 @@ type application struct {
 	redisClient       *redis.Client
 	baseURL           string
 	dummyPasswordHash string
+
+	mailer    *resend.Client
+	emailMode string
+	emailFrom string
 }
 
 type createLinkRequest struct {
@@ -58,7 +62,7 @@ type registerRequest struct {
 
 func main() {
 	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found; using system environment variables")
+		log.Println("no .env file found")
 	}
 
 	databaseURL := os.Getenv("DATABASE_URL")
@@ -111,20 +115,48 @@ func main() {
 		"this-password-does-not-belong-to-any-user",
 	)
 
+	emailMode := envOrDefault("EMAIL_MODE", "log")
+	emailFrom := os.Getenv("EMAIL_FROM")
+
+	var mailer *resend.Client
+
+	switch emailMode {
+
+	case "log":
+		log.Println("email mode: log")
+
+	case "resend":
+		resendAPIKey := os.Getenv("RESEND_API_KEY")
+		if resendAPIKey == "" {
+			log.Fatal("RESEND_API_KEY is required when EMAIL_MODE=resend")
+		}
+		if emailFrom == "" {
+			log.Fatal("EMAIL_FROM is required when EMAIL_MODE=resend")
+		}
+		mailer = resend.NewClient(resendAPIKey)
+	default:
+		log.Fatalf("unsupported EMAIL_MODE: %s", emailMode)
+	}
+
 	app := &application{
 		db:                db,
 		redisClient:       redisClient,
 		baseURL:           baseURL,
 		dummyPasswordHash: dummyPasswordHash,
+
+		mailer:    mailer,
+		emailMode: emailMode,
+		emailFrom: emailFrom,
 	}
 
 	// router
 	mux := http.NewServeMux()
 
 	// API
-	mux.HandleFunc("POST /api/links", app.createLink)
-	mux.HandleFunc("POST /api/auth/register", app.register)
-	mux.HandleFunc("POST /api/auth/login", app.login)
+	mux.Handle("POST /api/links", app.requireAuth(http.HandlerFunc(app.createLink)))
+	mux.Handle("GET /api/links/mine", app.requireAuth(http.HandlerFunc(app.myLinks)))
+	mux.Handle("GET /api/auth/me", app.requireAuth(http.HandlerFunc(app.me)))
+	mux.Handle("POST /api/auth/logout", app.requireAuth(http.HandlerFunc(app.logout)))
 
 	// frontend
 	mux.HandleFunc("GET /{$}", app.home)
@@ -136,9 +168,15 @@ func main() {
 		),
 	)
 
+	mux.HandleFunc("POST /api/auth/register", app.register)
+	mux.HandleFunc("POST /api/auth/login", app.login)
 	mux.HandleFunc("GET /{code}", app.redirect)
+	mux.HandleFunc("POST /api/auth/resend-verification", app.resendVerification)
+	mux.HandleFunc("GET /verify-email", app.verifyEmail)
 	mux.HandleFunc("GET /register", app.registerPage)
 	mux.HandleFunc("GET /login", app.loginPage)
+	mux.HandleFunc("GET /my-links", app.myLinksPage)
+	mux.Handle("DELETE /api/links/{code}", app.requireAuth(http.HandlerFunc(app.deleteLink)))
 
 	server := &http.Server{
 		Addr:              serverAddress(),
@@ -162,6 +200,10 @@ func (app *application) registerPage(w http.ResponseWriter, r *http.Request) {
 
 func (app *application) loginPage(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "./web/login.html")
+}
+
+func (app *application) home(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./web/index.html")
 }
 
 func validateEmail(email string) error {
@@ -276,30 +318,89 @@ func (app *application) register(w http.ResponseWriter, r *http.Request) {
 		passwordHash,
 	).Scan(&userID)
 
-	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			writeJSON(w, http.StatusAccepted, map[string]any{
-				"message": "if this email can be registered, check your inbox for the next step",
-			})
-			return
-		}
-		log.Printf("insert user: %v", err)
+	if err := app.issueEmailVerification(
+		r.Context(),
+		userID,
+		input.Name,
+		input.Email,
+	); err != nil {
+		log.Printf(
+			"issue verification for user %d: %v",
+			userID,
+			err,
+		)
+		writeJSON(
+			w,
+			http.StatusServiceUnavailable,
+			errorResponse{
+				Error: "account created, but verification email could not be sent; please request another verification email",
+			},
+		)
+		return
+	}
 
+	writeJSON(
+		w,
+		http.StatusAccepted,
+		map[string]any{
+			"message": "account created; check your email to verify your account",
+		},
+	)
+}
+
+func (app *application) logout(w http.ResponseWriter, r *http.Request) {
+	userID, ok := currentUserID(r)
+	if !ok {
 		writeJSON(w, http.StatusInternalServerError, errorResponse{
-			Error: "could not create account",
+			Error: "authenticated user missing",
 		})
 		return
 	}
-}
 
-func (app *application) home(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./web/index.html")
+	cookie, err := r.Cookie("session")
+	if err != nil {
+		writeJSON(w, http.StatusUnauthorized, errorResponse{
+			Error: "authentication required",
+		})
+		return
+	}
+
+	tokenHash := hashSessionToken(cookie.Value)
+
+	if err := app.deleteSession(
+		r.Context(),
+		userID,
+		tokenHash,
+	); err != nil {
+		log.Printf("delete session for user %d: %v", userID, err)
+
+		writeJSON(w, http.StatusInternalServerError, errorResponse{
+			Error: "could not log out",
+		})
+		return
+	}
+
+	secureCookie := strings.HasPrefix(app.baseURL, "https://")
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session",
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   secureCookie,
+		SameSite: http.SameSiteLaxMode,
+
+		MaxAge:  -1,
+		Expires: time.Unix(1, 0),
+	})
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"message": "logged out",
+	})
 }
 
 func (app *application) createLink(w http.ResponseWriter, r *http.Request) {
-	// Prevent clients from sending an unexpectedly large request body.
-	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1 MB
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 
 	var input createLinkRequest
 
@@ -321,56 +422,176 @@ func (app *application) createLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Retry in the unlikely event that a generated code already exists.
-	for attempt := 0; attempt < 5; attempt++ {
-		code, err := generateCode(codeLength)
+	userID, ok := currentUserID(r)
+	if !ok {
+		writeJSON(
+			w,
+			http.StatusInternalServerError,
+			errorResponse{
+				Error: "authenticated user missing",
+			},
+		)
+		return
+	}
+
+	for i := 0; i < 5; i++ {
+		code, err := generateCode(7)
 		if err != nil {
-			log.Printf("generate code: %v", err)
-			writeJSON(w, http.StatusInternalServerError, errorResponse{
-				Error: "could not create short link",
-			})
+			log.Printf("generate short code: %v", err)
+
+			writeJSON(
+				w,
+				http.StatusInternalServerError,
+				errorResponse{
+					Error: "could not generate short link",
+				},
+			)
 			return
 		}
 
-		var insertedCode string
+		var savedCode string
 
 		err = app.db.QueryRowContext(
 			r.Context(),
 			`
-				INSERT INTO short_links (code, target_url)
-				VALUES ($1, $2)
-				ON CONFLICT (code) DO NOTHING
-				RETURNING code
-			`,
+			INSERT INTO short_links (
+				code,
+				target_url,
+				user_id
+			)
+			VALUES ($1, $2, $3)
+			ON CONFLICT (code) DO NOTHING
+			RETURNING code
+		`,
 			code,
 			targetURL,
-		).Scan(&insertedCode)
+			userID,
+		).Scan(&savedCode)
 
-		switch {
-		case err == nil:
-			writeJSON(w, http.StatusCreated, createLinkResponse{
-				Code:     insertedCode,
-				ShortURL: app.baseURL + "/" + insertedCode,
-				LongURL:  targetURL,
-			})
-			return
-
-		case errors.Is(err, sql.ErrNoRows):
-			// The generated code collided with an existing code.
+		if errors.Is(err, sql.ErrNoRows) {
 			continue
+		}
 
-		default:
-			log.Printf("insert short link: %v", err)
-			writeJSON(w, http.StatusInternalServerError, errorResponse{
-				Error: "could not save short link",
-			})
+		if err != nil {
+			log.Printf("save short link: %v", err)
+			writeJSON(
+				w,
+				http.StatusInternalServerError,
+				errorResponse{
+					Error: "could not save short link",
+				},
+			)
 			return
 		}
+
+		shortURL := app.baseURL + "/" + savedCode
+		writeJSON(
+			w,
+			http.StatusCreated,
+			map[string]any{
+				"code":      savedCode,
+				"short_url": shortURL,
+			},
+		)
+		return
 	}
 
 	writeJSON(w, http.StatusInternalServerError, errorResponse{
 		Error: "could not generate a unique short link",
 	})
+}
+
+func (app *application) deleteLink(w http.ResponseWriter, r *http.Request) {
+	userID, ok := currentUserID(r)
+	if !ok {
+		writeJSON(
+			w,
+			http.StatusInternalServerError,
+			errorResponse{
+				Error: "authenticated user missing",
+			},
+		)
+		return
+	}
+
+	code := r.PathValue("code")
+
+	if !validCode(code) {
+		writeJSON(
+			w,
+			http.StatusBadRequest,
+			errorResponse{
+				Error: "invalid short link",
+			},
+		)
+		return
+	}
+
+	result, err := app.db.ExecContext(
+		r.Context(),
+		`
+			DELETE FROM short_links
+			WHERE code = $1
+			AND user_id = $2
+		`,
+		code,
+		userID,
+	)
+
+	if err != nil {
+		log.Printf(
+			"delete link %s for user %d: %v",
+			code,
+			userID,
+			err,
+		)
+
+		writeJSON(
+			w,
+			http.StatusInternalServerError,
+			errorResponse{
+				Error: "could not delete link",
+			},
+		)
+		return
+	}
+
+	rowsAffected, err := result.RowsAffected()
+
+	if err != nil {
+		log.Printf(
+			"read delete result: %v",
+			err,
+		)
+
+		writeJSON(
+			w,
+			http.StatusInternalServerError,
+			errorResponse{
+				Error: "could not delete link",
+			},
+		)
+		return
+	}
+
+	if rowsAffected == 0 {
+		writeJSON(
+			w,
+			http.StatusNotFound,
+			errorResponse{
+				Error: "link not found",
+			},
+		)
+		return
+	}
+
+	writeJSON(
+		w,
+		http.StatusOK,
+		map[string]any{
+			"message": "link deleted",
+		},
+	)
 }
 
 func (app *application) redirect(w http.ResponseWriter, r *http.Request) {
@@ -512,4 +733,12 @@ func serverAddress() string {
 	}
 
 	return "0.0.0.0:" + port
+}
+
+func (app *application) myLinksPage(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(
+		w,
+		r,
+		"./web/my-links.html",
+	)
 }
