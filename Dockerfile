@@ -9,7 +9,7 @@ RUN go mod download
 COPY . .
 
 RUN echo "=== CHECKING FRONTEND ===" && \
-    grep -n "SNIP_BUILD_MARKER_20260826" /app/web/static/app.js
+    grep -n "SNIP_BUILD_MARKER_20260826" /app/webfiles/static/app.js
 
 RUN CGO_ENABLED=0 GOOS=linux go build -o /app/server ./cmd/server
 
@@ -22,10 +22,10 @@ RUN apk add --no-cache ca-certificates \
 WORKDIR /app
 
 COPY --from=builder /app/server ./server
-COPY --from=builder /app/web ./web
+COPY --from=builder /app/web ./webfiles
 
 RUN echo "=== CHECKING RUNTIME FRONTEND ===" && \
-    grep -n "SNIP_BUILD_MARKER_20260826" /app/web/static/app.js
+    grep -n "SNIP_BUILD_MARKER_20260826" /app/webfiles/static/app.js
 
 USER appuser
 

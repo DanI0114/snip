@@ -163,7 +163,7 @@ func main() {
 
 	// frontend
 	staticFiles := http.FileServer(
-		http.Dir("./web/static"),
+		http.Dir("./webfiles/static"),
 	)
 	mux.Handle(
 		"/static/",
@@ -200,15 +200,15 @@ func main() {
 }
 
 func (app *application) registerPage(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./web/register.html")
+	http.ServeFile(w, r, "./webfiles/register.html")
 }
 
 func (app *application) loginPage(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./web/login.html")
+	http.ServeFile(w, r, "./webfiles/login.html")
 }
 
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./web/index.html")
+	http.ServeFile(w, r, "./webfiles/index.html")
 }
 
 func validateEmail(email string) error {
@@ -744,6 +744,6 @@ func (app *application) myLinksPage(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(
 		w,
 		r,
-		"./web/my-links.html",
+		"./webfiles/my-links.html",
 	)
 }
