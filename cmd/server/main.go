@@ -75,14 +75,7 @@ func main() {
 		baseURL = "http://localhost:8080"
 	}
 
-	redisURL, redisExists := os.LookupEnv("REDIS_URL")
-
-	log.Printf(
-		"REDIS_URL present=%v length=%d",
-		redisExists,
-		len(redisURL),
-	)
-
+	redisURL := os.Getenv("REDIS_URL")
 	if redisURL == "" {
 		log.Fatal("REDIS_URL variable is required")
 	}
