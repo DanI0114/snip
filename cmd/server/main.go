@@ -19,7 +19,6 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
-	"github.com/resend/resend-go/v3"
 )
 
 const (
@@ -34,9 +33,10 @@ type application struct {
 	baseURL           string
 	dummyPasswordHash string
 
-	mailer    *resend.Client
-	emailMode string
-	emailFrom string
+	emailMode     string
+	brevoAPIKey   string
+	emailFrom     string
+	emailFromName string
 }
 
 type createLinkRequest struct {
@@ -116,24 +116,26 @@ func main() {
 	)
 
 	emailMode := envOrDefault("EMAIL_MODE", "log")
-	emailFrom := os.Getenv("EMAIL_FROM")
 
-	var mailer *resend.Client
+	brevoAPIKey := os.Getenv("BREVO_API_KEY")
+	emailFrom := os.Getenv("EMAIL_FROM")
+	emailFromName := envOrDefault("EMAIL_FROM_NAME", "Snip")
 
 	switch emailMode {
-
 	case "log":
 		log.Println("email mode: log")
 
-	case "resend":
-		resendAPIKey := os.Getenv("RESEND_API_KEY")
-		if resendAPIKey == "" {
-			log.Fatal("RESEND_API_KEY is required when EMAIL_MODE=resend")
+	case "brevo":
+		if brevoAPIKey == "" {
+			log.Fatal("BREVO_API_KEY is required when EMAIL_MODE=brevo")
 		}
+
 		if emailFrom == "" {
-			log.Fatal("EMAIL_FROM is required when EMAIL_MODE=resend")
+			log.Fatal("EMAIL_FROM is required when EMAIL_MODE=brevo")
 		}
-		mailer = resend.NewClient(resendAPIKey)
+
+		log.Println("email mode: brevo")
+
 	default:
 		log.Fatalf("unsupported EMAIL_MODE: %s", emailMode)
 	}
@@ -144,9 +146,10 @@ func main() {
 		baseURL:           baseURL,
 		dummyPasswordHash: dummyPasswordHash,
 
-		mailer:    mailer,
-		emailMode: emailMode,
-		emailFrom: emailFrom,
+		emailMode:     emailMode,
+		brevoAPIKey:   brevoAPIKey,
+		emailFrom:     emailFrom,
+		emailFromName: emailFromName,
 	}
 
 	// router
