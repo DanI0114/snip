@@ -22,7 +22,7 @@ RUN apk add --no-cache ca-certificates \
 WORKDIR /app
 
 COPY --from=builder /app/server ./server
-COPY --from=builder /app/web ./webfiles
+COPY --from=builder /app/webfiles ./webfiles
 
 RUN echo "=== CHECKING RUNTIME FRONTEND ===" && \
     grep -n "SNIP_BUILD_MARKER_20260826" /app/webfiles/static/app.js
