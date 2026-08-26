@@ -162,12 +162,14 @@ func main() {
 	mux.Handle("POST /api/auth/logout", app.requireAuth(http.HandlerFunc(app.logout)))
 
 	// frontend
-	mux.HandleFunc("GET /{$}", app.home)
+	staticFiles := http.FileServer(
+		http.Dir("./web/static"),
+	)
 	mux.Handle(
-		"GET /static/",
+		"/static/",
 		http.StripPrefix(
 			"/static/",
-			http.FileServer(http.Dir("./web/static")),
+			staticFiles,
 		),
 	)
 
