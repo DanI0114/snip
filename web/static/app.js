@@ -1,3 +1,5 @@
+console.log("SNIP_BUILD_MARKER_20260826");
+
 async function readJSON(response) {
   try {
     return await response.json();
@@ -707,11 +709,6 @@ function updateDashboardAfterDelete() {
   const summaryElement =
     document.querySelector("#links-summary");
 
-
-  // ------------------------------------------
-  // Recalculate total clicks
-  // ------------------------------------------
-
   const totalClicks = Array
     .from(cards)
     .reduce((sum, card) => {
@@ -719,11 +716,6 @@ function updateDashboardAfterDelete() {
         card.dataset.clicks || 0
       );
     }, 0);
-
-
-  // ------------------------------------------
-  // Update counters
-  // ------------------------------------------
 
   if (totalLinksElement) {
     totalLinksElement.textContent =
@@ -734,12 +726,6 @@ function updateDashboardAfterDelete() {
     totalClicksElement.textContent =
       totalClicks.toLocaleString();
   }
-
-
-  // ------------------------------------------
-  // If there are no links left,
-  // show the empty state
-  // ------------------------------------------
 
   if (cards.length === 0) {
     if (linksListElement) {
@@ -753,14 +739,8 @@ function updateDashboardAfterDelete() {
     if (emptyElement) {
       emptyElement.hidden = false;
     }
-
     return;
   }
-
-
-  // ------------------------------------------
-  // Otherwise keep dashboard visible
-  // ------------------------------------------
 
   if (linksListElement) {
     linksListElement.hidden = false;
