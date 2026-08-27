@@ -100,3 +100,22 @@ PostgreSQL          Redis / Valkey
 Users                Sessions
 Short links           Verification tokens
 Click counts
+```
+---
+## What I Learned
+I created Snip to learn about backend tech and understand how a web application works in general 
+
+Some of the main concepts i learned in this project were:
+Designing HTTP APIs in Go
+Working with PostgreSQL from Go
+Modeling relationships between users and application data
+Implementing authentication without JWTs
+Building server-side session management with Redis
+Secure password storage with Argon2id
+Email verification flows
+Protecting user-owned resources
+Handling frontend authentication state
+Dockerizing a Go application
+Managing production environment variables
+Migrating a production database
+Deploying PostgreSQL, Valkey, and a Go web service to Render
