@@ -50,12 +50,8 @@ Link ownership is enforced on the server using the authenticated user's ID.
 ### Backend
 
 - Go
-- `net/http`
 - PostgreSQL
-- `database/sql`
-- pgx
-- Redis / Valkey
-- go-redis
+- Redis/Valkey
 
 ### Authentication & Security
 
@@ -72,7 +68,7 @@ Link ownership is enforced on the server using the authenticated user's ID.
 - HTML
 - CSS
 - Vanilla JavaScript
-- Fetch API
+
 
 ### Infrastructure
 
