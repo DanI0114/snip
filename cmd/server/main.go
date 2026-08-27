@@ -160,6 +160,7 @@ func main() {
 	mux.Handle("GET /api/links/mine", app.requireAuth(http.HandlerFunc(app.myLinks)))
 	mux.Handle("GET /api/auth/me", app.requireAuth(http.HandlerFunc(app.me)))
 	mux.Handle("POST /api/auth/logout", app.requireAuth(http.HandlerFunc(app.logout)))
+	mux.Handle("DELETE /api/links/{code}", app.requireAuth(http.HandlerFunc(app.deleteLink)))
 
 	// frontend
 	staticFiles := http.FileServer(
@@ -173,6 +174,7 @@ func main() {
 		),
 	)
 
+	mux.HandleFunc("GET /home", app.home)
 	mux.HandleFunc("POST /api/auth/register", app.register)
 	mux.HandleFunc("POST /api/auth/login", app.login)
 	mux.HandleFunc("GET /{code}", app.redirect)
@@ -181,7 +183,6 @@ func main() {
 	mux.HandleFunc("GET /register", app.registerPage)
 	mux.HandleFunc("GET /login", app.loginPage)
 	mux.HandleFunc("GET /my-links", app.myLinksPage)
-	mux.Handle("DELETE /api/links/{code}", app.requireAuth(http.HandlerFunc(app.deleteLink)))
 
 	server := &http.Server{
 		Addr:              serverAddress(),
