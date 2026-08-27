@@ -174,7 +174,7 @@ func main() {
 		),
 	)
 
-	mux.HandleFunc("GET /", app.home)
+	mux.HandleFunc("GET /{$}", app.home)
 	mux.HandleFunc("POST /api/auth/register", app.register)
 	mux.HandleFunc("POST /api/auth/login", app.login)
 	mux.HandleFunc("GET /{code}", app.redirect)
