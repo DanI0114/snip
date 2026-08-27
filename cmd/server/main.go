@@ -351,8 +351,6 @@ func (app *application) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Only issue a verification token after we know
-	// the user was successfully inserted.
 	if err := app.issueEmailVerification(
 		r.Context(),
 		userID,
