@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
@@ -311,19 +312,47 @@ func (app *application) register(w http.ResponseWriter, r *http.Request) {
 	err = app.db.QueryRowContext(
 		r.Context(),
 		`
-			INSERT INTO users (
-				name,
-				email,
-				password_hash
-			)
-			VALUES ($1, $2, $3)
-			RETURNING user_id
-		`,
+		INSERT INTO users (
+			name,
+			email,
+			password_hash
+		)
+		VALUES ($1, $2, $3)
+		RETURNING user_id
+	`,
 		input.Name,
 		input.Email,
 		passwordHash,
 	).Scan(&userID)
 
+	if err != nil {
+		var pgErr *pgconn.PgError
+
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			writeJSON(
+				w,
+				http.StatusConflict,
+				errorResponse{
+					Error: "an account with that email already exists",
+				},
+			)
+			return
+		}
+
+		log.Printf("insert user: %v", err)
+
+		writeJSON(
+			w,
+			http.StatusInternalServerError,
+			errorResponse{
+				Error: "could not create account",
+			},
+		)
+		return
+	}
+
+	// Only issue a verification token after we know
+	// the user was successfully inserted.
 	if err := app.issueEmailVerification(
 		r.Context(),
 		userID,
@@ -335,6 +364,7 @@ func (app *application) register(w http.ResponseWriter, r *http.Request) {
 			userID,
 			err,
 		)
+
 		writeJSON(
 			w,
 			http.StatusServiceUnavailable,

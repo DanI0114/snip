@@ -18,11 +18,13 @@ services:
     environment:
       DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}?sslmode=disable"
       BASE_URL: "http://localhost:8080"
-      HTTP_ADDRESS: ":8080"
+      REDIS_URL: "redis://${REDIS_URL}:6379"
+      EMAIL_MODE: "log"
     ports:
       - "8080:8080"
     depends_on:
       - database
+      - redis
 
   redis:
     image: valkey/valkey:8-alpine
