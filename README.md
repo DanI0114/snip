@@ -68,6 +68,80 @@ Link ownership is enforced on the server using the authenticated user's ID.
 
 ---
 
+## QA Automation
+
+Snip includes an automated QA suite built with **Python, Pytest, and Playwright**, covering both the REST API and browser UI.
+
+The current suite contains **34 automated tests** focused on functional behavior, validation, authentication, authorization, session management, and end-to-end application behavior.
+
+### What the 34 Automated Tests Cover
+
+#### Registration API
+- Minimum and maximum password-length boundaries
+- Password confirmation mismatch
+- Invalid email formats
+- Empty and whitespace-only names
+- Maximum name length
+- Unknown JSON fields
+- Malformed JSON requests
+- Missing required fields
+- Expected HTTP status codes and API error responses
+
+#### Authentication & Session API
+- Successful login with valid credentials
+- Rejection of incorrect passwords
+- Rejection of nonexistent users
+- Authenticated access to `/api/auth/me`
+- Rejection of unauthenticated access to protected endpoints
+- Logout behavior
+- Session invalidation after logout
+- Generic authentication errors to reduce account-enumeration risk
+- Malformed login requests
+- Missing credential handling
+
+#### Short-Link API
+- Authenticated short-link creation
+- Rejection of unauthenticated link creation
+- Empty URL validation
+- Unsupported URL schemes
+- Missing hostnames
+- Maximum URL length
+- Automatic HTTPS normalization
+- HTTP `302` redirect behavior
+- Deletion of owned links
+- Invalid short-link codes
+- Verification that deleted links are no longer accessible
+
+#### Authorization
+Object-level authorization is tested using two separate authenticated users:
+
+1. **User A** creates a short link.
+2. **User B** attempts to delete User A's link.
+3. The deletion request is rejected.
+4. User A's original link remains accessible.
+
+This verifies that knowing another resource's identifier is not enough to modify or delete it.
+
+#### UI Automation
+- Registration page availability
+- Important registration form elements
+- Password-confirmation validation through the browser
+
+### Test Design Techniques Used
+- Positive testing
+- Negative testing
+- Boundary-value analysis
+- Input-validation testing
+- API contract testing
+- Authentication testing
+- Authorization testing
+- Session-state testing
+- Security-oriented testing
+- Test isolation
+- Pytest parameterization
+- UI smoke testing
+- End-to-end behavior verification
+
 ## Architecture
 Snip uses PostgreSQL for persistent application data and Redis/Valkey for temporary authentication state.
 ```text
