@@ -5,7 +5,6 @@ The project was built to explore backend architecture, authentication, session m
 
 ## Live Demo
 [View Snip](https://snip-mm8n.onrender.com)
-> The application is hosted on Render, so the free instance may take a few seconds to wake up after a period of inactivity.
 
 ---
 
